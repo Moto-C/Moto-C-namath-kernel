@@ -90,7 +90,6 @@ static struct dentry *binder_debugfs_dir_entry_proc;
 static atomic_t binder_last_id;
 static struct workqueue_struct *binder_deferred_workqueue;
 
-<<<<<<< HEAD
 #define RT_PRIO_INHERIT			"v1.7"
 #ifdef RT_PRIO_INHERIT
 #include <linux/sched/rt.h>
@@ -147,8 +146,6 @@ char large_msg[TRANS_LOG_LEN];
 #define BINDER_PERF_EVAL		"V0.1"
 #endif
 
-=======
->>>>>>> 817e9dc... Bring up LOS-15.1
 #define BINDER_DEBUG_ENTRY(name) \
 static int binder_##name##_open(struct inode *inode, struct file *file) \
 { \
@@ -225,7 +222,7 @@ module_param_call(stop_on_user_error, binder_set_stop_on_user_error,
 			pr_info(x); \
 	} while (0)
 
-<<<<<<< HEAD
+
 #ifdef BINDER_MONITOR
 #define binder_user_error(x...) \
 	do { \
@@ -235,8 +232,6 @@ module_param_call(stop_on_user_error, binder_set_stop_on_user_error,
 			binder_stop_on_user_error = 2; \
 	} while (0)
 #else
-=======
->>>>>>> 817e9dc... Bring up LOS-15.1
 #define binder_user_error(x...) \
 	do { \
 		if (binder_debug_mask & BINDER_DEBUG_USER_ERROR) \
@@ -759,43 +754,11 @@ _binder_proc_lock(struct binder_proc *proc, int line)
 #define binder_proc_unlock(_proc) _binder_proc_unlock(_proc, __LINE__)
 static void
 _binder_proc_unlock(struct binder_proc *proc, int line)
+
 {
-<<<<<<< HEAD
-	struct rtc_time tm;
-	struct timespec *startime;
-	struct timespec cur, sub_t;
-
-	if (cur_in && e) {
-		memcpy(&cur, cur_in, sizeof(struct timespec));
-	} else {
-		do_posix_clock_monotonic_gettime(&cur);
-		/*monotonic_to_bootbased(&cur); */
-	}
-	startime = (r == WAIT_ON_EXEC) ? &t->exe_timestamp : &t->timestamp;
-	sub_t = timespec_sub(cur, *startime);
-
-	rtc_time_to_tm(t->tv.tv_sec, &tm);
-	pr_debug("%d %s %d:%d to %d:%d %s %u.%03ld sec (%s) dex_code %u",
-		 t->debug_id, binder_wait_on_str[r],
-		 t->fproc, t->fthrd, t->tproc, t->tthrd,
-		 (cur_in && e) ? "over" : "total",
-		 (unsigned)sub_t.tv_sec, (sub_t.tv_nsec / NSEC_PER_MSEC),
-		 t->service, t->code);
-	pr_debug(" start_at %lu.%03ld android %d-%02d-%02d %02d:%02d:%02d.%03lu\n",
-		 (unsigned long)startime->tv_sec,
-		 (startime->tv_nsec / NSEC_PER_MSEC),
-		 (tm.tm_year + 1900), (tm.tm_mon + 1), tm.tm_mday,
-		 tm.tm_hour, tm.tm_min, tm.tm_sec, (unsigned long)(t->tv.tv_usec / USEC_PER_MSEC));
-
-	if (e) {
-		e->over_sec = sub_t.tv_sec;
-		memcpy(&e->ts, startime, sizeof(struct timespec));
-	}
-=======
 	binder_debug(BINDER_DEBUG_SPINLOCKS,
 		     "%s: line=%d\n", __func__, line);
 	spin_unlock(&proc->outer_lock);
->>>>>>> 817e9dc... Bring up LOS-15.1
 }
 
 /**
@@ -3693,26 +3656,11 @@ static int binder_thread_write(struct binder_proc *proc,
 				if (!w) {
 					buf_node->has_async_transaction = 0;
 				} else {
-<<<<<<< HEAD
-					//+Bug 261338 zhangjun.wt modified  the phone would be restart when answer the phone 2017/05/03
-					list_move_tail(buffer->target_node->async_todo.next, &proc->todo);
-					buffer->target_node->async_pid = thread->pid;
-				}
-#else
-				if (list_empty(&buffer->target_node->async_todo))
-					buffer->target_node->has_async_transaction = 0;
-				else{
-					//+Bug 261338 zhangjun.wt modified the phone would be restart when answer the phone 2017/05/03
-					list_move_tail(buffer->target_node->async_todo.next, &proc->todo);
-				}
-#endif
-=======
 					binder_enqueue_work_ilocked(
 							w, &proc->todo);
 					binder_wakeup_proc_ilocked(proc);
 				}
 				binder_node_inner_unlock(buf_node);
->>>>>>> 817e9dc... Bring up LOS-15.1
 			}
 			trace_binder_transaction_buffer_release(buffer);
 			binder_transaction_buffer_release(proc, buffer, NULL);
@@ -4947,47 +4895,6 @@ static int binder_mmap(struct file *filp, struct vm_area_struct *vma)
 		goto err_bad_arg;
 	}
 	vma->vm_flags = (vma->vm_flags | VM_DONTCOPY) & ~VM_MAYWRITE;
-<<<<<<< HEAD
-
-	mutex_lock(&binder_mmap_lock);
-	if (proc->buffer) {
-		ret = -EBUSY;
-		failure_string = "already mapped";
-		goto err_already_mapped;
-	}
-
-	area = get_vm_area(vma->vm_end - vma->vm_start, VM_IOREMAP);
-	if (area == NULL) {
-		ret = -ENOMEM;
-		failure_string = "get_vm_area";
-		goto err_get_vm_area_failed;
-	}
-	proc->buffer = area->addr;
-	proc->user_buffer_offset = vma->vm_start - (uintptr_t) proc->buffer;
-	mutex_unlock(&binder_mmap_lock);
-
-#ifdef CONFIG_CPU_CACHE_VIPT
-	if (cache_is_vipt_aliasing()) {
-		while (CACHE_COLOUR((vma->vm_start ^ (uint32_t) proc->buffer))) {
-			pr_info
-			    ("binder_mmap: %d %lx-%lx maps %p bad alignment\n",
-			     proc->pid, vma->vm_start, vma->vm_end, proc->buffer);
-			vma->vm_start += PAGE_SIZE;
-		}
-	}
-#endif
-	proc->pages =
-	    kzalloc(sizeof(proc->pages[0]) *
-		    ((vma->vm_end - vma->vm_start) / PAGE_SIZE), GFP_KERNEL);
-	if (proc->pages == NULL) {
-		ret = -ENOMEM;
-		failure_string = "alloc page array";
-		goto err_alloc_pages_failed;
-	}
-	proc->buffer_size = vma->vm_end - vma->vm_start;
-
-=======
->>>>>>> 817e9dc... Bring up LOS-15.1
 	vma->vm_ops = &binder_vm_ops;
 	vma->vm_private_data = proc;
 
@@ -4997,19 +4904,6 @@ static int binder_mmap(struct file *filp, struct vm_area_struct *vma)
 	proc->files = get_files_struct(current);
 	return 0;
 
-<<<<<<< HEAD
-err_alloc_small_buf_failed:
-	kfree(proc->pages);
-	proc->pages = NULL;
-err_alloc_pages_failed:
-	mutex_lock(&binder_mmap_lock);
-	vfree(proc->buffer);
-	proc->buffer = NULL;
-err_get_vm_area_failed:
-err_already_mapped:
-	mutex_unlock(&binder_mmap_lock);
-=======
->>>>>>> 817e9dc... Bring up LOS-15.1
 err_bad_arg:
 	pr_err("binder_mmap: %d %lx-%lx %s failed %d\n",
 	       proc->pid, vma->vm_start, vma->vm_end, failure_string, ret);
