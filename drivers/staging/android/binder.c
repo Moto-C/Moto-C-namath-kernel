@@ -250,7 +250,7 @@ module_param_call(stop_on_user_error, binder_set_stop_on_user_error,
 
 #define to_binder_fd_array_object(hdr) \
 	container_of(hdr, struct binder_fd_array_object, hdr)
-
+#endif
 enum binder_stat_types {
 	BINDER_STAT_PROC,
 	BINDER_STAT_THREAD,
